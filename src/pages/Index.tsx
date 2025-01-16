@@ -38,20 +38,14 @@ const Index = () => {
       const formData = new FormData();
       formData.append('file', selectedFile);
 
-      const response = await fetch(
-        'https://rugkunwrkoknqiquykqo.supabase.co/functions/v1/optimize-image',
-        {
-          method: 'POST',
-          body: formData,
-        }
-      );
+      const { data, error } = await supabase.functions.invoke('optimize-image', {
+        body: formData,
+      });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Falha ao otimizar imagem');
+      if (error) {
+        throw error;
       }
 
-      const data = await response.json();
       setOptimizationProgress(100);
       setOptimizedImageUrl(data.optimizedUrl);
       toast.success("Imagem otimizada com sucesso!");
