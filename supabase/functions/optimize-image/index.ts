@@ -7,6 +7,7 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
@@ -45,7 +46,6 @@ serve(async (req) => {
     }
 
     // For now, we'll just store the original image since we can't use Sharp
-    // In a production environment, you'd want to implement proper image optimization
     const { error: dbError } = await supabase
       .from('images')
       .insert({
@@ -74,6 +74,7 @@ serve(async (req) => {
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
     )
   } catch (error) {
+    console.error('Error in optimize-image function:', error);
     return new Response(
       JSON.stringify({ error: 'An unexpected error occurred', details: error.message }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
