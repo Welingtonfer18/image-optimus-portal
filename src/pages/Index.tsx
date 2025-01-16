@@ -38,19 +38,27 @@ const Index = () => {
       const formData = new FormData();
       formData.append('file', selectedFile);
 
+      // Get the current session
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        throw new Error('No session found. Please log in.');
+      }
+
       const response = await fetch(
         'https://rugkunwrkoknqiquykqo.supabase.co/functions/v1/optimize-image',
         {
           method: 'POST',
           body: formData,
           headers: {
-            'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+            'Authorization': `Bearer ${session.access_token}`,
           },
         }
       );
 
       if (!response.ok) {
-        throw new Error('Falha ao otimizar imagem');
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Falha ao otimizar imagem');
       }
 
       const data = await response.json();
@@ -58,8 +66,8 @@ const Index = () => {
       setOptimizedImageUrl(data.optimizedUrl);
       toast.success("Imagem otimizada com sucesso!");
     } catch (error) {
-      toast.error("Erro ao otimizar imagem. Tente novamente.");
       console.error('Optimization error:', error);
+      toast.error(error instanceof Error ? error.message : "Erro ao otimizar imagem. Tente novamente.");
     } finally {
       setIsOptimizing(false);
     }
