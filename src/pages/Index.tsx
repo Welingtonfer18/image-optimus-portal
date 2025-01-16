@@ -3,30 +3,57 @@ import { ImageDropzone } from "@/components/ImageDropzone";
 import { CreditsDisplay } from "@/components/CreditsDisplay";
 import { Button } from "@/components/ui/button";
 import { Download, Loader2 } from "lucide-react";
+import { toast } from "sonner";
+import { Progress } from "@/components/ui/progress";
 
 const Index = () => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [optimizedImageUrl, setOptimizedImageUrl] = useState<string | null>(null);
   const [isOptimizing, setIsOptimizing] = useState(false);
-  const [credits] = useState(5); // This would come from your backend
+  const [optimizationProgress, setOptimizationProgress] = useState(0);
+  const [credits] = useState(1); // Initial free credit
 
   const handleOptimize = async () => {
-    if (!selectedFile) return;
+    if (!selectedFile) {
+      toast.error("Por favor, selecione uma imagem primeiro");
+      return;
+    }
     
     setIsOptimizing(true);
-    // Here you would call your optimization API
-    await new Promise(resolve => setTimeout(resolve, 2000)); // Simulated delay
-    setOptimizedImageUrl(URL.createObjectURL(selectedFile));
-    setIsOptimizing(false);
+    setOptimizationProgress(0);
+    
+    try {
+      // Simulate optimization progress
+      const interval = setInterval(() => {
+        setOptimizationProgress((prev) => {
+          if (prev >= 90) {
+            clearInterval(interval);
+            return 90;
+          }
+          return prev + 10;
+        });
+      }, 200);
+
+      // Here you would call your optimization API
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      setOptimizationProgress(100);
+      setOptimizedImageUrl(URL.createObjectURL(selectedFile));
+      toast.success("Imagem otimizada com sucesso!");
+    } catch (error) {
+      toast.error("Erro ao otimizar imagem. Tente novamente.");
+    } finally {
+      setIsOptimizing(false);
+    }
   };
 
   return (
     <div className="min-h-screen bg-background p-6 md:p-12">
       <div className="mx-auto max-w-4xl space-y-8">
         <div className="space-y-2">
-          <h1 className="text-3xl font-bold tracking-tight">Image Optimizer</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Otimizador de Imagens</h1>
           <p className="text-muted-foreground">
-            Optimize your images with just a few clicks
+            Otimize suas imagens com apenas alguns cliques
           </p>
         </div>
 
@@ -34,23 +61,32 @@ const Index = () => {
           <div className="space-y-6">
             <ImageDropzone onImageSelect={setSelectedFile} />
             
+            {isOptimizing && (
+              <div className="space-y-2">
+                <Progress value={optimizationProgress} />
+                <p className="text-sm text-muted-foreground text-center">
+                  Otimizando sua imagem...
+                </p>
+              </div>
+            )}
+            
             <div className="flex justify-end space-x-4">
               <Button
                 size="lg"
                 onClick={handleOptimize}
-                disabled={!selectedFile || isOptimizing}
+                disabled={!selectedFile || isOptimizing || credits < 1}
               >
                 {isOptimizing && (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 )}
-                {isOptimizing ? "Optimizing..." : "Optimize Image"}
+                {isOptimizing ? "Otimizando..." : "Otimizar Imagem"}
               </Button>
               
               {optimizedImageUrl && (
                 <Button size="lg" variant="outline" asChild>
                   <a href={optimizedImageUrl} download>
                     <Download className="mr-2 h-4 w-4" />
-                    Download
+                    Baixar
                   </a>
                 </Button>
               )}
@@ -59,6 +95,16 @@ const Index = () => {
 
           <div className="space-y-6">
             <CreditsDisplay credits={credits} />
+            {credits < 1 && (
+              <div className="rounded-lg border bg-card p-4 text-center">
+                <p className="text-sm text-muted-foreground mb-2">
+                  Seus créditos acabaram
+                </p>
+                <Button variant="outline" size="sm">
+                  Comprar Créditos
+                </Button>
+              </div>
+            )}
           </div>
         </div>
       </div>
