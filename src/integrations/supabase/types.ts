@@ -36,6 +36,45 @@ export type Database = {
         }
         Relationships: []
       }
+      images: {
+        Row: {
+          content_type: string
+          created_at: string | null
+          credits_used: number | null
+          expires_at: string | null
+          id: string
+          optimized_at: string | null
+          optimized_path: string | null
+          original_filename: string
+          original_path: string
+          user_id: string | null
+        }
+        Insert: {
+          content_type: string
+          created_at?: string | null
+          credits_used?: number | null
+          expires_at?: string | null
+          id?: string
+          optimized_at?: string | null
+          optimized_path?: string | null
+          original_filename: string
+          original_path: string
+          user_id?: string | null
+        }
+        Update: {
+          content_type?: string
+          created_at?: string | null
+          credits_used?: number | null
+          expires_at?: string | null
+          id?: string
+          optimized_at?: string | null
+          optimized_path?: string | null
+          original_filename?: string
+          original_path?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       industries: {
         Row: {
           description: string | null

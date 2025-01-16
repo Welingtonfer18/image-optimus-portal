@@ -5,25 +5,26 @@ import { Button } from "@/components/ui/button";
 import { Download, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Progress } from "@/components/ui/progress";
+import { supabase } from "@/integrations/supabase/client";
 
 const Index = () => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [optimizedImageUrl, setOptimizedImageUrl] = useState<string | null>(null);
   const [isOptimizing, setIsOptimizing] = useState(false);
   const [optimizationProgress, setOptimizationProgress] = useState(0);
-  const [credits] = useState(1); // Initial free credit
+  const [credits] = useState(1);
 
   const handleOptimize = async () => {
     if (!selectedFile) {
       toast.error("Por favor, selecione uma imagem primeiro");
       return;
     }
-    
+
     setIsOptimizing(true);
     setOptimizationProgress(0);
-    
+
     try {
-      // Simulate optimization progress
+      // Start progress animation
       const interval = setInterval(() => {
         setOptimizationProgress((prev) => {
           if (prev >= 90) {
@@ -34,14 +35,31 @@ const Index = () => {
         });
       }, 200);
 
-      // Here you would call your optimization API
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
+      const formData = new FormData();
+      formData.append('file', selectedFile);
+
+      const response = await fetch(
+        'https://rugkunwrkoknqiquykqo.supabase.co/functions/v1/optimize-image',
+        {
+          method: 'POST',
+          body: formData,
+          headers: {
+            'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Falha ao otimizar imagem');
+      }
+
+      const data = await response.json();
       setOptimizationProgress(100);
-      setOptimizedImageUrl(URL.createObjectURL(selectedFile));
+      setOptimizedImageUrl(data.optimizedUrl);
       toast.success("Imagem otimizada com sucesso!");
     } catch (error) {
       toast.error("Erro ao otimizar imagem. Tente novamente.");
+      console.error('Optimization error:', error);
     } finally {
       setIsOptimizing(false);
     }
