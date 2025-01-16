@@ -38,21 +38,11 @@ const Index = () => {
       const formData = new FormData();
       formData.append('file', selectedFile);
 
-      // Get the current session
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session) {
-        throw new Error('No session found. Please log in.');
-      }
-
       const response = await fetch(
         'https://rugkunwrkoknqiquykqo.supabase.co/functions/v1/optimize-image',
         {
           method: 'POST',
           body: formData,
-          headers: {
-            'Authorization': `Bearer ${session.access_token}`,
-          },
         }
       );
 
