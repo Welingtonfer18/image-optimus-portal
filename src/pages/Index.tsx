@@ -30,6 +30,12 @@ const Index = () => {
     setOptimizationProgress(0);
 
     try {
+      // Verificar se o usuário está autenticado
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error("Usuário não autenticado");
+      }
+
       // Configurações de compressão
       const options = {
         maxSizeMB: 1,
@@ -48,26 +54,40 @@ const Index = () => {
       const optimizedSize = compressedFile.size;
       const compressionRatio = ((originalSize - optimizedSize) / originalSize * 100).toFixed(2);
 
-      // Upload da imagem otimizada
-      const fileName = compressedFile.name.replace(/[^\x00-\x7F]/g, '');
+      // Upload da imagem original
+      const fileName = selectedFile.name.replace(/[^\x00-\x7F]/g, '');
       const fileExt = fileName.split('.').pop() || 'jpg';
-      const filePath = `optimized/${crypto.randomUUID()}.${fileExt}`;
+      const originalPath = `original/${crypto.randomUUID()}.${fileExt}`;
+      const optimizedPath = `optimized/${crypto.randomUUID()}.${fileExt}`;
 
-      const { error: uploadError, data } = await supabase.storage
+      // Upload da imagem original
+      const { error: originalUploadError } = await supabase.storage
         .from('images')
-        .upload(filePath, compressedFile, {
+        .upload(originalPath, selectedFile, {
+          contentType: selectedFile.type,
+          upsert: false
+        });
+
+      if (originalUploadError) {
+        throw originalUploadError;
+      }
+
+      // Upload da imagem otimizada
+      const { error: optimizedUploadError } = await supabase.storage
+        .from('images')
+        .upload(optimizedPath, compressedFile, {
           contentType: compressedFile.type,
           upsert: false
         });
 
-      if (uploadError) {
-        throw uploadError;
+      if (optimizedUploadError) {
+        throw optimizedUploadError;
       }
 
-      // Obter URL pública
+      // Obter URL pública da imagem otimizada
       const { data: { publicUrl } } = supabase.storage
         .from('images')
-        .getPublicUrl(filePath);
+        .getPublicUrl(optimizedPath);
 
       setOptimizedImageUrl(publicUrl);
       setOptimizationStats({
@@ -78,8 +98,10 @@ const Index = () => {
 
       // Salvar metadados
       await supabase.from('images').insert({
+        user_id: user.id,
         original_filename: fileName,
-        optimized_path: filePath,
+        original_path: originalPath,
+        optimized_path: optimizedPath,
         content_type: compressedFile.type,
         optimized_at: new Date().toISOString(),
         original_size: originalSize,
