@@ -30,12 +30,6 @@ const Index = () => {
     setOptimizationProgress(0);
 
     try {
-      // Verificar se o usuário está autenticado
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        throw new Error("Usuário não autenticado");
-      }
-
       // Configurações de compressão
       const options = {
         maxSizeMB: 1,
@@ -54,7 +48,7 @@ const Index = () => {
       const optimizedSize = compressedFile.size;
       const compressionRatio = ((originalSize - optimizedSize) / originalSize * 100).toFixed(2);
 
-      // Upload da imagem original
+      // Preparar nomes dos arquivos
       const fileName = selectedFile.name.replace(/[^\x00-\x7F]/g, '');
       const fileExt = fileName.split('.').pop() || 'jpg';
       const originalPath = `original/${crypto.randomUUID()}.${fileExt}`;
@@ -98,7 +92,6 @@ const Index = () => {
 
       // Salvar metadados
       await supabase.from('images').insert({
-        user_id: user.id,
         original_filename: fileName,
         original_path: originalPath,
         optimized_path: optimizedPath,
@@ -193,7 +186,7 @@ const Index = () => {
               <Button
                 size="lg"
                 onClick={handleOptimize}
-                disabled={!selectedFile || isOptimizing || credits < 1}
+                disabled={!selectedFile || isOptimizing}
               >
                 {isOptimizing && (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -216,16 +209,6 @@ const Index = () => {
 
           <div className="space-y-6">
             <CreditsDisplay credits={credits} />
-            {credits < 1 && (
-              <div className="rounded-lg border bg-card p-4 text-center">
-                <p className="text-sm text-muted-foreground mb-2">
-                  Seus créditos acabaram
-                </p>
-                <Button variant="outline" size="sm">
-                  Comprar Créditos
-                </Button>
-              </div>
-            )}
           </div>
         </div>
       </div>
