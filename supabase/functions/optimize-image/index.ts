@@ -1,6 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1'
-import Sharp from 'https://esm.sh/sharp@0.32.6'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -29,25 +28,20 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    // Converter o arquivo para um buffer
+    // Convert file to buffer
     const arrayBuffer = await file.arrayBuffer()
     const buffer = new Uint8Array(arrayBuffer)
 
-    // Otimizar a imagem com Sharp
-    const optimizedBuffer = await Sharp(buffer)
-      .jpeg({ quality: 80 }) // Qualidade de 80%
-      .toBuffer()
-
     const originalFileName = file.name.replace(/[^\x00-\x7F]/g, '')
-    const fileExt = 'jpg' // Sempre convertemos para JPG
+    const fileExt = originalFileName.split('.').pop() || 'jpg'
     const optimizedPath = `optimized/${crypto.randomUUID()}.${fileExt}`
     const originalPath = `original/${crypto.randomUUID()}.${fileExt}`
 
-    // Upload da imagem original
+    // Upload original image
     const { error: originalUploadError } = await supabase.storage
       .from('images')
       .upload(originalPath, file, {
-        contentType: 'image/jpeg',
+        contentType: file.type,
         upsert: false
       })
 
@@ -55,11 +49,12 @@ serve(async (req) => {
       throw new Error('Failed to upload original image')
     }
 
-    // Upload da imagem otimizada
+    // For now, we'll use the same image for both original and optimized
+    // since we can't use Sharp in Edge Functions
     const { error: optimizedUploadError } = await supabase.storage
       .from('images')
-      .upload(optimizedPath, optimizedBuffer, {
-        contentType: 'image/jpeg',
+      .upload(optimizedPath, buffer, {
+        contentType: file.type,
         upsert: false
       })
 
@@ -67,7 +62,7 @@ serve(async (req) => {
       throw new Error('Failed to upload optimized image')
     }
 
-    // Obter URLs públicas das imagens
+    // Get public URLs
     const { data: { publicUrl: optimizedUrl } } = supabase.storage
       .from('images')
       .getPublicUrl(optimizedPath)
@@ -76,19 +71,19 @@ serve(async (req) => {
       .from('images')
       .getPublicUrl(originalPath)
 
-    // Calcular tamanhos
+    // Calculate sizes
     const originalSize = buffer.length
-    const optimizedSize = optimizedBuffer.length
+    const optimizedSize = buffer.length // In this case, they're the same
     const compressionRatio = ((originalSize - optimizedSize) / originalSize) * 100
 
-    // Salvar metadados no banco
+    // Save metadata
     const { error: dbError } = await supabase
       .from('images')
       .insert({
         original_filename: originalFileName,
         original_path: originalPath,
         optimized_path: optimizedPath,
-        content_type: 'image/jpeg',
+        content_type: file.type,
         optimized_at: new Date().toISOString(),
         original_size: originalSize,
         optimized_size: optimizedSize,
@@ -100,7 +95,7 @@ serve(async (req) => {
 
     return new Response(
       JSON.stringify({ 
-        message: 'Image optimized successfully',
+        message: 'Image processed successfully',
         originalUrl,
         optimizedUrl,
         originalSize,
