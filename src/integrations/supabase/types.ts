@@ -9,30 +9,24 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      analysis_rules: {
+      evaluation_criteria: {
         Row: {
-          category: string
-          created_at: string | null
           description: string | null
           id: number
-          penalty: number
-          rule_name: string
+          max_score: number
+          name: string
         }
         Insert: {
-          category: string
-          created_at?: string | null
           description?: string | null
           id?: number
-          penalty: number
-          rule_name: string
+          max_score: number
+          name: string
         }
         Update: {
-          category?: string
-          created_at?: string | null
           description?: string | null
           id?: number
-          penalty?: number
-          rule_name?: string
+          max_score?: number
+          name?: string
         }
         Relationships: []
       }
@@ -45,8 +39,10 @@ export type Database = {
           id: string
           optimized_at: string | null
           optimized_path: string | null
+          optimized_size: number | null
           original_filename: string
           original_path: string
+          original_size: number | null
           user_id: string | null
         }
         Insert: {
@@ -57,8 +53,10 @@ export type Database = {
           id?: string
           optimized_at?: string | null
           optimized_path?: string | null
+          optimized_size?: number | null
           original_filename: string
           original_path: string
+          original_size?: number | null
           user_id?: string | null
         }
         Update: {
@@ -69,127 +67,70 @@ export type Database = {
           id?: string
           optimized_at?: string | null
           optimized_path?: string | null
+          optimized_size?: number | null
           original_filename?: string
           original_path?: string
+          original_size?: number | null
           user_id?: string | null
         }
         Relationships: []
       }
-      industries: {
-        Row: {
-          description: string | null
-          id: number
-          name: string
-        }
-        Insert: {
-          description?: string | null
-          id?: number
-          name: string
-        }
-        Update: {
-          description?: string | null
-          id?: number
-          name?: string
-        }
-        Relationships: []
-      }
-      industry_keywords: {
-        Row: {
-          industry_id: number
-          keyword_id: number
-        }
-        Insert: {
-          industry_id: number
-          keyword_id: number
-        }
-        Update: {
-          industry_id?: number
-          keyword_id?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "industry_keywords_industry_id_fkey"
-            columns: ["industry_id"]
-            isOneToOne: false
-            referencedRelation: "industries"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "industry_keywords_keyword_id_fkey"
-            columns: ["keyword_id"]
-            isOneToOne: false
-            referencedRelation: "keywords"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       keywords: {
         Row: {
           category: string
+          created_at: string | null
           id: number
-          weight: number
           word: string
         }
         Insert: {
-          category: string
+          category?: string
+          created_at?: string | null
           id?: number
-          weight: number
           word: string
         }
         Update: {
           category?: string
+          created_at?: string | null
           id?: number
-          weight?: number
           word?: string
         }
         Relationships: []
       }
-      resume_analyses: {
+      resume_analysis_results: {
         Row: {
           created_at: string | null
-          critical_penalties: Json | null
-          detailed_feedback: Json | null
-          education_score: number
-          experience_score: number
-          format_score: number
+          criteria_id: number | null
+          details: Json | null
           id: string
-          keyword_score: number
-          light_penalties: Json | null
-          moderate_penalties: Json | null
-          overall_score: number
-          resume_id: string
+          resume_id: string | null
+          score: number
         }
         Insert: {
           created_at?: string | null
-          critical_penalties?: Json | null
-          detailed_feedback?: Json | null
-          education_score: number
-          experience_score: number
-          format_score: number
+          criteria_id?: number | null
+          details?: Json | null
           id?: string
-          keyword_score: number
-          light_penalties?: Json | null
-          moderate_penalties?: Json | null
-          overall_score: number
-          resume_id: string
+          resume_id?: string | null
+          score: number
         }
         Update: {
           created_at?: string | null
-          critical_penalties?: Json | null
-          detailed_feedback?: Json | null
-          education_score?: number
-          experience_score?: number
-          format_score?: number
+          criteria_id?: number | null
+          details?: Json | null
           id?: string
-          keyword_score?: number
-          light_penalties?: Json | null
-          moderate_penalties?: Json | null
-          overall_score?: number
-          resume_id?: string
+          resume_id?: string | null
+          score?: number
         }
         Relationships: [
           {
-            foreignKeyName: "resume_analyses_resume_id_fkey"
+            foreignKeyName: "resume_analysis_results_criteria_id_fkey"
+            columns: ["criteria_id"]
+            isOneToOne: false
+            referencedRelation: "evaluation_criteria"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "resume_analysis_results_resume_id_fkey"
             columns: ["resume_id"]
             isOneToOne: false
             referencedRelation: "resumes"
@@ -206,7 +147,7 @@ export type Database = {
           filename: string
           id: string
           updated_at: string | null
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           content_type: string
@@ -216,7 +157,7 @@ export type Database = {
           filename: string
           id?: string
           updated_at?: string | null
-          user_id: string
+          user_id?: string | null
         }
         Update: {
           content_type?: string
@@ -226,7 +167,7 @@ export type Database = {
           filename?: string
           id?: string
           updated_at?: string | null
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: []
       }

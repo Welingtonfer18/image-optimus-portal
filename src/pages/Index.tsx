@@ -13,6 +13,11 @@ const Index = () => {
   const [isOptimizing, setIsOptimizing] = useState(false);
   const [optimizationProgress, setOptimizationProgress] = useState(0);
   const [credits] = useState(1);
+  const [optimizationStats, setOptimizationStats] = useState<{
+    originalSize: number;
+    optimizedSize: number;
+    compressionRatio: string;
+  } | null>(null);
 
   const handleOptimize = async () => {
     if (!selectedFile) {
@@ -48,6 +53,11 @@ const Index = () => {
 
       setOptimizationProgress(100);
       setOptimizedImageUrl(data.optimizedUrl);
+      setOptimizationStats({
+        originalSize: data.originalSize,
+        optimizedSize: data.optimizedSize,
+        compressionRatio: data.compressionRatio,
+      });
       toast.success("Imagem otimizada com sucesso!");
     } catch (error) {
       console.error('Optimization error:', error);
@@ -55,6 +65,34 @@ const Index = () => {
     } finally {
       setIsOptimizing(false);
     }
+  };
+
+  const handleDownload = async () => {
+    if (!optimizedImageUrl) return;
+    
+    try {
+      const response = await fetch(optimizedImageUrl);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `optimized-${selectedFile?.name || 'image.jpg'}`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error('Download error:', error);
+      toast.error("Erro ao baixar a imagem. Tente novamente.");
+    }
+  };
+
+  const formatBytes = (bytes: number) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
   return (
@@ -79,6 +117,26 @@ const Index = () => {
                 </p>
               </div>
             )}
+
+            {optimizationStats && (
+              <div className="rounded-lg border bg-card p-4 space-y-2">
+                <h3 className="font-medium">Resultados da Otimização</h3>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <p className="text-muted-foreground">Tamanho Original</p>
+                    <p className="font-medium">{formatBytes(optimizationStats.originalSize)}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Tamanho Otimizado</p>
+                    <p className="font-medium">{formatBytes(optimizationStats.optimizedSize)}</p>
+                  </div>
+                  <div className="col-span-2">
+                    <p className="text-muted-foreground">Taxa de Compressão</p>
+                    <p className="font-medium">{optimizationStats.compressionRatio}%</p>
+                  </div>
+                </div>
+              </div>
+            )}
             
             <div className="flex justify-end space-x-4">
               <Button
@@ -93,11 +151,13 @@ const Index = () => {
               </Button>
               
               {optimizedImageUrl && (
-                <Button size="lg" variant="outline" asChild>
-                  <a href={optimizedImageUrl} download>
-                    <Download className="mr-2 h-4 w-4" />
-                    Baixar
-                  </a>
+                <Button 
+                  size="lg" 
+                  variant="outline"
+                  onClick={handleDownload}
+                >
+                  <Download className="mr-2 h-4 w-4" />
+                  Baixar
                 </Button>
               )}
             </div>
