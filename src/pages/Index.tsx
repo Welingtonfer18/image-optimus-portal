@@ -6,6 +6,7 @@ import { Download, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
+import imageCompression from "browser-image-compression";
 
 const Index = () => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -29,41 +30,69 @@ const Index = () => {
     setOptimizationProgress(0);
 
     try {
-      // Start progress animation
-      const interval = setInterval(() => {
-        setOptimizationProgress((prev) => {
-          if (prev >= 90) {
-            clearInterval(interval);
-            return 90;
-          }
-          return prev + 10;
+      // Configurações de compressão
+      const options = {
+        maxSizeMB: 1,
+        maxWidthOrHeight: 1920,
+        useWebWorker: true,
+        onProgress: (progress: number) => {
+          setOptimizationProgress(progress);
+        },
+      };
+
+      // Comprimir a imagem
+      const compressedFile = await imageCompression(selectedFile, options);
+      
+      // Calcular estatísticas
+      const originalSize = selectedFile.size;
+      const optimizedSize = compressedFile.size;
+      const compressionRatio = ((originalSize - optimizedSize) / originalSize * 100).toFixed(2);
+
+      // Upload da imagem otimizada
+      const fileName = compressedFile.name.replace(/[^\x00-\x7F]/g, '');
+      const fileExt = fileName.split('.').pop() || 'jpg';
+      const filePath = `optimized/${crypto.randomUUID()}.${fileExt}`;
+
+      const { error: uploadError, data } = await supabase.storage
+        .from('images')
+        .upload(filePath, compressedFile, {
+          contentType: compressedFile.type,
+          upsert: false
         });
-      }, 200);
 
-      const formData = new FormData();
-      formData.append('file', selectedFile);
-
-      const { data, error } = await supabase.functions.invoke('optimize-image', {
-        body: formData,
-      });
-
-      if (error) {
-        throw error;
+      if (uploadError) {
+        throw uploadError;
       }
 
-      setOptimizationProgress(100);
-      setOptimizedImageUrl(data.optimizedUrl);
+      // Obter URL pública
+      const { data: { publicUrl } } = supabase.storage
+        .from('images')
+        .getPublicUrl(filePath);
+
+      setOptimizedImageUrl(publicUrl);
       setOptimizationStats({
-        originalSize: data.originalSize,
-        optimizedSize: data.optimizedSize,
-        compressionRatio: data.compressionRatio,
+        originalSize,
+        optimizedSize,
+        compressionRatio,
       });
+
+      // Salvar metadados
+      await supabase.from('images').insert({
+        original_filename: fileName,
+        optimized_path: filePath,
+        content_type: compressedFile.type,
+        optimized_at: new Date().toISOString(),
+        original_size: originalSize,
+        optimized_size: optimizedSize,
+      });
+
       toast.success("Imagem otimizada com sucesso!");
     } catch (error) {
       console.error('Optimization error:', error);
-      toast.error(error instanceof Error ? error.message : "Erro ao otimizar imagem. Tente novamente.");
+      toast.error("Erro ao otimizar imagem. Tente novamente.");
     } finally {
       setIsOptimizing(false);
+      setOptimizationProgress(100);
     }
   };
 
