@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { ImageDropzone } from "@/components/ImageDropzone";
-import { CreditsDisplay } from "@/components/CreditsDisplay";
 import { Button } from "@/components/ui/button";
 import { Download, Loader2 } from "lucide-react";
 import { toast } from "sonner";
@@ -13,7 +12,6 @@ const Index = () => {
   const [optimizedImageUrl, setOptimizedImageUrl] = useState<string | null>(null);
   const [isOptimizing, setIsOptimizing] = useState(false);
   const [optimizationProgress, setOptimizationProgress] = useState(0);
-  const [credits] = useState(1);
   const [optimizationStats, setOptimizationStats] = useState<{
     originalSize: number;
     optimizedSize: number;
@@ -149,7 +147,7 @@ const Index = () => {
           </p>
         </div>
 
-        <div className="grid gap-6 md:grid-cols-[1fr_300px]">
+        <div className="grid gap-6">
           <div className="space-y-6">
             <ImageDropzone onImageSelect={setSelectedFile} />
             
@@ -205,10 +203,6 @@ const Index = () => {
                 </Button>
               )}
             </div>
-          </div>
-
-          <div className="space-y-6">
-            <CreditsDisplay credits={credits} />
           </div>
         </div>
       </div>
