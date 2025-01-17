@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { ImageDropzone } from "@/components/ImageDropzone";
 import { Button } from "@/components/ui/button";
-import { Download, Loader2 } from "lucide-react";
+import { Download, Loader2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
@@ -20,7 +20,9 @@ const Index = () => {
 
   const handleOptimize = async () => {
     if (!selectedFile) {
-      toast.error("Por favor, selecione uma imagem primeiro");
+      toast.error("Por favor, selecione uma imagem primeiro", {
+        position: "bottom-center",
+      });
       return;
     }
 
@@ -28,7 +30,6 @@ const Index = () => {
     setOptimizationProgress(0);
 
     try {
-      // Configurações de compressão
       const options = {
         maxSizeMB: 1,
         maxWidthOrHeight: 1920,
@@ -38,21 +39,17 @@ const Index = () => {
         },
       };
 
-      // Comprimir a imagem
       const compressedFile = await imageCompression(selectedFile, options);
       
-      // Calcular estatísticas
       const originalSize = selectedFile.size;
       const optimizedSize = compressedFile.size;
       const compressionRatio = ((originalSize - optimizedSize) / originalSize * 100).toFixed(2);
 
-      // Preparar nomes dos arquivos
       const fileName = selectedFile.name.replace(/[^\x00-\x7F]/g, '');
       const fileExt = fileName.split('.').pop() || 'jpg';
       const originalPath = `original/${crypto.randomUUID()}.${fileExt}`;
       const optimizedPath = `optimized/${crypto.randomUUID()}.${fileExt}`;
 
-      // Upload da imagem original
       const { error: originalUploadError } = await supabase.storage
         .from('images')
         .upload(originalPath, selectedFile, {
@@ -64,7 +61,6 @@ const Index = () => {
         throw originalUploadError;
       }
 
-      // Upload da imagem otimizada
       const { error: optimizedUploadError } = await supabase.storage
         .from('images')
         .upload(optimizedPath, compressedFile, {
@@ -76,7 +72,6 @@ const Index = () => {
         throw optimizedUploadError;
       }
 
-      // Obter URL pública da imagem otimizada
       const { data: { publicUrl } } = supabase.storage
         .from('images')
         .getPublicUrl(optimizedPath);
@@ -88,7 +83,6 @@ const Index = () => {
         compressionRatio,
       });
 
-      // Salvar metadados
       await supabase.from('images').insert({
         original_filename: fileName,
         original_path: originalPath,
@@ -99,10 +93,15 @@ const Index = () => {
         optimized_size: optimizedSize,
       });
 
-      toast.success("Imagem otimizada com sucesso!");
+      toast.success("Imagem otimizada com sucesso!", {
+        position: "bottom-center",
+        icon: <Sparkles className="h-4 w-4" />,
+      });
     } catch (error) {
       console.error('Optimization error:', error);
-      toast.error("Erro ao otimizar imagem. Tente novamente.");
+      toast.error("Erro ao otimizar imagem. Tente novamente.", {
+        position: "bottom-center",
+      });
     } finally {
       setIsOptimizing(false);
       setOptimizationProgress(100);
@@ -123,9 +122,16 @@ const Index = () => {
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
+      
+      toast.success("Download concluído!", {
+        position: "bottom-center",
+        icon: <Download className="h-4 w-4" />,
+      });
     } catch (error) {
       console.error('Download error:', error);
-      toast.error("Erro ao baixar a imagem. Tente novamente.");
+      toast.error("Erro ao baixar a imagem. Tente novamente.", {
+        position: "bottom-center",
+      });
     }
   };
 
@@ -138,58 +144,68 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background p-6 md:p-12">
+    <div className="min-h-screen bg-gradient-to-b from-background to-muted/20 p-6 md:p-12">
       <div className="mx-auto max-w-4xl space-y-8">
-        <div className="space-y-2">
-          <h1 className="text-3xl font-bold tracking-tight">Otimizador de Imagens</h1>
-          <p className="text-muted-foreground">
-            Otimize suas imagens com apenas alguns cliques
+        <div className="space-y-2 text-center">
+          <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+            ImageOptimizer Pro
+          </h1>
+          <p className="text-muted-foreground text-lg">
+            Otimize suas imagens instantaneamente mantendo a qualidade
           </p>
         </div>
 
-        <div className="grid gap-6">
-          <div className="space-y-6">
+        <div className="grid gap-8">
+          <div className="space-y-8">
             <ImageDropzone onImageSelect={setSelectedFile} />
             
             {isOptimizing && (
               <div className="space-y-2">
-                <Progress value={optimizationProgress} />
-                <p className="text-sm text-muted-foreground text-center">
+                <Progress value={optimizationProgress} className="h-2" />
+                <p className="text-sm text-muted-foreground text-center animate-pulse">
                   Otimizando sua imagem...
                 </p>
               </div>
             )}
 
             {optimizationStats && (
-              <div className="rounded-lg border bg-card p-4 space-y-2">
-                <h3 className="font-medium">Resultados da Otimização</h3>
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
+              <div className="rounded-lg border bg-card/50 backdrop-blur-sm p-6 space-y-4">
+                <h3 className="font-semibold text-lg">Resultados da Otimização</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="space-y-2">
                     <p className="text-muted-foreground">Tamanho Original</p>
-                    <p className="font-medium">{formatBytes(optimizationStats.originalSize)}</p>
+                    <p className="font-medium text-lg">{formatBytes(optimizationStats.originalSize)}</p>
                   </div>
-                  <div>
+                  <div className="space-y-2">
                     <p className="text-muted-foreground">Tamanho Otimizado</p>
-                    <p className="font-medium">{formatBytes(optimizationStats.optimizedSize)}</p>
+                    <p className="font-medium text-lg">{formatBytes(optimizationStats.optimizedSize)}</p>
                   </div>
-                  <div className="col-span-2">
+                  <div className="space-y-2">
                     <p className="text-muted-foreground">Taxa de Compressão</p>
-                    <p className="font-medium">{optimizationStats.compressionRatio}%</p>
+                    <p className="font-medium text-lg">{optimizationStats.compressionRatio}%</p>
                   </div>
                 </div>
               </div>
             )}
             
-            <div className="flex justify-end space-x-4">
+            <div className="flex flex-col sm:flex-row justify-center gap-4">
               <Button
                 size="lg"
                 onClick={handleOptimize}
                 disabled={!selectedFile || isOptimizing}
+                className="w-full sm:w-auto"
               >
-                {isOptimizing && (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                {isOptimizing ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Otimizando...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="mr-2 h-4 w-4" />
+                    Otimizar Imagem
+                  </>
                 )}
-                {isOptimizing ? "Otimizando..." : "Otimizar Imagem"}
               </Button>
               
               {optimizedImageUrl && (
@@ -197,9 +213,10 @@ const Index = () => {
                   size="lg" 
                   variant="outline"
                   onClick={handleDownload}
+                  className="w-full sm:w-auto"
                 >
                   <Download className="mr-2 h-4 w-4" />
-                  Baixar
+                  Baixar Imagem Otimizada
                 </Button>
               )}
             </div>
